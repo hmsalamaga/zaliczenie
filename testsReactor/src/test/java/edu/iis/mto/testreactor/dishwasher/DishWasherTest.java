@@ -43,55 +43,65 @@ public class DishWasherTest {
         unrelevantFillLevel = FillLevel.HALF;
         programConfiguration = programConfiguration(notRinseProgram, true);
 
-        lenient().when(door.closed()).thenReturn(true);
-        lenient().when(dirtFilter.capacity()).thenReturn(70.0d);
+        lenient().when(door.closed())
+                 .thenReturn(true);
+        lenient().when(dirtFilter.capacity())
+                 .thenReturn(70.0d);
     }
 
     @Test
-    public void start_programIsNull_ThrowsNullPointerException() {
+    public void start_programIsNull_shouldThrowNullPointerException() {
         assertThrows(NullPointerException.class, () -> {
             dishWasher.start(null);
         });
     }
 
     @Test
-    public void start_doorIsNotClosed_returnsDoorOpenError() {
-        lenient().when(door.closed()).thenReturn(false);
+    public void start_doorIsNotClosed_shouldReturnDoorOpenError() {
+        lenient().when(door.closed())
+                 .thenReturn(false);
         RunResult result = dishWasher.start(programConfiguration);
 
         assertThat(error(DOOR_OPEN), samePropertyValuesAs(result));
     }
 
     @Test
-    public void start_dirtFilterIsFilled_returnsFilterError() {
-        lenient().when(dirtFilter.capacity()).thenReturn(30.0d);
+    public void start_dirtFilterIsFilled_shouldReturnFilterError() {
+        lenient().when(dirtFilter.capacity())
+                 .thenReturn(30.0d);
         RunResult result = dishWasher.start(programConfiguration);
 
         assertThat(error(ERROR_FILTER), samePropertyValuesAs(result));
     }
 
     @Test
-    public void start_withProperAttributes_returnsSuccess() {
+    public void start_withProperAttributes_shouldReturnSuccess() {
         RunResult result = dishWasher.start(programConfiguration);
 
         assertThat(success(programConfiguration.getProgram()), samePropertyValuesAs(result));
     }
 
     @Test
-    public void start_withProperAttributes_callInstancesInProperOrder() throws PumpException, EngineException {
+    public void start_withProperAttributes_shouldCallInstancesInProperOrder() throws PumpException, EngineException {
         dishWasher.start(programConfiguration);
 
         InOrder callOrder = Mockito.inOrder(door, dirtFilter, waterPump, engine);
-        callOrder.verify(door).closed();
-        callOrder.verify(dirtFilter).capacity();
-        callOrder.verify(waterPump).pour(unrelevantFillLevel);
-        callOrder.verify(engine).runProgram(programConfiguration.getProgram());
-        callOrder.verify(waterPump).drain();
-        callOrder.verify(door).unlock();
+        callOrder.verify(door)
+                 .closed();
+        callOrder.verify(dirtFilter)
+                 .capacity();
+        callOrder.verify(waterPump)
+                 .pour(unrelevantFillLevel);
+        callOrder.verify(engine)
+                 .runProgram(programConfiguration.getProgram());
+        callOrder.verify(waterPump)
+                 .drain();
+        callOrder.verify(door)
+                 .unlock();
     }
 
     @Test
-    public void start_doorAreClosedAndDirtFilterIsNotFilled_callDoor() {
+    public void start_withProperAttributes_shouldCallDoor() {
         dishWasher.start(programConfiguration);
 
         verify(door).closed();
@@ -99,14 +109,14 @@ public class DishWasherTest {
     }
 
     @Test
-    public void start_withProperAttributes_callDirtFilter() {
+    public void start_withProperAttributes_shouldCallDirtFilter() {
         dishWasher.start(programConfiguration);
 
         verify(dirtFilter).capacity();
     }
 
     @Test
-    public void start_withProperAttributes_callWaterPumpTwice() throws PumpException {
+    public void start_withProperAttributes_shouldCallWaterPumpTwice() throws PumpException {
         dishWasher.start(programConfiguration);
 
         verify(waterPump, Mockito.times(2)).pour(unrelevantFillLevel);
@@ -114,7 +124,7 @@ public class DishWasherTest {
     }
 
     @Test
-    public void start_programIsRinse_callWaterPumpOnce() throws PumpException {
+    public void start_programIsRinse_shouldCallWaterPumpOnce() throws PumpException {
         programConfiguration = programConfiguration(WashingProgram.RINSE, true);
         dishWasher.start(programConfiguration);
 
@@ -123,7 +133,15 @@ public class DishWasherTest {
     }
 
     @Test
-    public void start_withProperAttributes_callEngine() throws EngineException {
+    public void start_programIsWithoutWashingTablets_shouldNotCallDirtFilter() {
+        programConfiguration = programConfiguration(WashingProgram.ECO, false);
+        dishWasher.start(programConfiguration);
+
+        verify(dirtFilter, Mockito.times(0)).capacity();
+    }
+
+    @Test
+    public void start_withProperAttributes_shouldCallEngine() throws EngineException {
         dishWasher.start(programConfiguration);
 
         verify(engine).runProgram(programConfiguration.getProgram());
