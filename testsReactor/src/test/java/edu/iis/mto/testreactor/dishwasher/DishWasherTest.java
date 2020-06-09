@@ -4,8 +4,7 @@ import static edu.iis.mto.testreactor.dishwasher.Status.*;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.samePropertyValuesAs;
 import static org.junit.jupiter.api.Assertions.assertThrows;
-import static org.mockito.Mockito.lenient;
-import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.*;
 
 import edu.iis.mto.testreactor.dishwasher.engine.Engine;
 import edu.iis.mto.testreactor.dishwasher.engine.EngineException;
@@ -43,35 +42,8 @@ public class DishWasherTest {
         unrelevantFillLevel = FillLevel.HALF;
         programConfiguration = programConfiguration(notRinseProgram, true);
 
-        lenient().when(door.closed())
-                 .thenReturn(true);
-        lenient().when(dirtFilter.capacity())
-                 .thenReturn(70.0d);
-    }
-
-    @Test
-    public void start_programIsNull_shouldThrowNullPointerException() {
-        assertThrows(NullPointerException.class, () -> {
-            dishWasher.start(null);
-        });
-    }
-
-    @Test
-    public void start_doorIsNotClosed_shouldReturnDoorOpenError() {
-        lenient().when(door.closed())
-                 .thenReturn(false);
-        RunResult result = dishWasher.start(programConfiguration);
-
-        assertThat(error(DOOR_OPEN), samePropertyValuesAs(result));
-    }
-
-    @Test
-    public void start_dirtFilterIsFilled_shouldReturnFilterError() {
-        lenient().when(dirtFilter.capacity())
-                 .thenReturn(30.0d);
-        RunResult result = dishWasher.start(programConfiguration);
-
-        assertThat(error(ERROR_FILTER), samePropertyValuesAs(result));
+        lenient().when(door.closed()).thenReturn(true);
+        lenient().when(dirtFilter.capacity()).thenReturn(70.0d);
     }
 
     @Test
@@ -82,22 +54,55 @@ public class DishWasherTest {
     }
 
     @Test
+    public void start_programIsNull_shouldThrowNullPointerExceptionWithProperMessage() {
+        assertThrows(NullPointerException.class, () -> {
+            dishWasher.start(null);
+        }, "program == null");
+    }
+
+    @Test
+    public void start_doorIsNotClosed_shouldReturnDoorOpenError() {
+        lenient().when(door.closed()).thenReturn(false);
+        RunResult result = dishWasher.start(programConfiguration);
+
+        assertThat(error(DOOR_OPEN), samePropertyValuesAs(result));
+    }
+
+    @Test
+    public void start_dirtFilterIsFilled_shouldReturnFilterError() {
+        lenient().when(dirtFilter.capacity()).thenReturn(30.0d);
+        RunResult result = dishWasher.start(programConfiguration);
+
+        assertThat(error(ERROR_FILTER), samePropertyValuesAs(result));
+    }
+
+    @Test
+    public void start_engineThrowsAnException_shouldReturnProgramError() throws EngineException {
+        doThrow(EngineException.class).when(engine).runProgram(programConfiguration.getProgram());
+        RunResult result = dishWasher.start(programConfiguration);
+
+        assertThat(error(ERROR_PROGRAM), samePropertyValuesAs(result));
+    }
+
+    @Test
+    public void start_waterPumpThrowsAnException_shouldReturnPumpError() throws PumpException {
+        doThrow(PumpException.class).when(waterPump).pour(unrelevantFillLevel);
+        RunResult result = dishWasher.start(programConfiguration);
+
+        assertThat(error(ERROR_PUMP), samePropertyValuesAs(result));
+    }
+
+    @Test
     public void start_withProperAttributes_shouldCallInstancesInProperOrder() throws PumpException, EngineException {
         dishWasher.start(programConfiguration);
 
         InOrder callOrder = Mockito.inOrder(door, dirtFilter, waterPump, engine);
-        callOrder.verify(door)
-                 .closed();
-        callOrder.verify(dirtFilter)
-                 .capacity();
-        callOrder.verify(waterPump)
-                 .pour(unrelevantFillLevel);
-        callOrder.verify(engine)
-                 .runProgram(programConfiguration.getProgram());
-        callOrder.verify(waterPump)
-                 .drain();
-        callOrder.verify(door)
-                 .unlock();
+        callOrder.verify(door).closed();
+        callOrder.verify(dirtFilter).capacity();
+        callOrder.verify(waterPump).pour(unrelevantFillLevel);
+        callOrder.verify(engine).runProgram(programConfiguration.getProgram());
+        callOrder.verify(waterPump).drain();
+        callOrder.verify(door).unlock();
     }
 
     @Test
@@ -148,23 +153,15 @@ public class DishWasherTest {
     }
 
     private RunResult error(Status errorPump) {
-        return RunResult.builder()
-                        .withStatus(errorPump)
-                        .build();
+        return RunResult.builder().withStatus(errorPump).build();
     }
 
     private RunResult success(WashingProgram program) {
-        return RunResult.builder()
-                        .withStatus(SUCCESS)
-                        .withRunMinutes(program.getTimeInMinutes())
-                        .build();
+        return RunResult.builder().withStatus(SUCCESS).withRunMinutes(program.getTimeInMinutes()).build();
     }
 
     private ProgramConfiguration programConfiguration(WashingProgram program, boolean tabletsUsed) {
-        return ProgramConfiguration.builder()
-                                   .withProgram(program)
-                                   .withTabletsUsed(tabletsUsed)
-                                   .withFillLevel(unrelevantFillLevel)
-                                   .build();
+        return ProgramConfiguration.builder().withProgram(program).withTabletsUsed(tabletsUsed)
+                                   .withFillLevel(unrelevantFillLevel).build();
     }
 }
