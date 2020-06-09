@@ -1,11 +1,14 @@
 package edu.iis.mto.testreactor.dishwasher;
 
+import static edu.iis.mto.testreactor.dishwasher.Status.DOOR_OPEN;
 import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.samePropertyValuesAs;
+import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.mockito.Mockito.lenient;
 
 import edu.iis.mto.testreactor.dishwasher.engine.Engine;
 import edu.iis.mto.testreactor.dishwasher.pump.WaterPump;
-import org.hamcrest.Matchers;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -23,6 +26,8 @@ public class DishWasherTest {
     DirtFilter dirtFilter;
     @Mock
     Door door;
+    @Mock
+    ProgramConfiguration programConfiguration;
 
     DishWasher dishWasher;
 
@@ -38,4 +43,17 @@ public class DishWasherTest {
         });
     }
 
+    @Test
+    public void start_doorIsNotClosed_ReturnDoorOpenError() {
+        lenient().when(door.closed()).thenReturn(false);
+        RunResult result = dishWasher.start(programConfiguration);
+
+        assertThat(error(DOOR_OPEN), samePropertyValuesAs(result));
+    }
+
+    private RunResult error(Status errorPump) {
+        return RunResult.builder()
+                        .withStatus(errorPump)
+                        .build();
+    }
 }
